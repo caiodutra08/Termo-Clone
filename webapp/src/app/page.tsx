@@ -3,7 +3,7 @@
 import React, { KeyboardEvent } from "react";
 
 export default function Home() {
-	const [thisRow, setThisRow] = React.useState<number>();
+	const [thisRow, setThisRow] = React.useState<number>(0);
 	const [word, setWord] = React.useState<string>("");
 	const divRef = React.useRef<HTMLDivElement>();
 
@@ -49,6 +49,10 @@ export default function Home() {
 						divRef.current = nextSibling;
 						changeEditDiv(nextSibling);
 					}
+
+					if (e.currentTarget.dataset.lid === "4") {
+						e.currentTarget.blur();
+					}
 				}
 				break;
 			}
@@ -66,8 +70,6 @@ export default function Home() {
 		divRef.current.focus();
 		divRef.current.classList.add("edit");
 	}
-
-	//TODO: Quando for a ultima letra tirar foco de todas as divs.
 
 	return (
 		<>
@@ -89,9 +91,13 @@ export default function Home() {
 										data-config="ipt"
 										onKeyDown={handleKeyDown}
 										onClick={handleClick}
-										onBlur={() => {
-											divRef.current?.focus();
+										onBlur={(e) => {
+											lid !== 4
+												? divRef.current?.focus()
+												: e.currentTarget.classList.remove("edit");
 										}}
+										data-row={row}
+										data-lid={lid}
 										tabIndex={-1}
 									/>
 								) : (
