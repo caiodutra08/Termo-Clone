@@ -67,6 +67,8 @@ export default function Home() {
 		divRef.current.classList.add("edit");
 	}
 
+	//TODO: Quando for a ultima letra tirar foco de todas as divs.
+
 	return (
 		<>
 			<main className="bg-zinc-700 w-full h-fh flex flex-col">
