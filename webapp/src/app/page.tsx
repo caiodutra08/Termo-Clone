@@ -12,6 +12,28 @@ export default function Home() {
 		setThisRow(0);
 	}, []);
 
+	React.useEffect(() => {
+
+		function handleSubmit(e: any) {
+			if (e.key === "Enter") {
+				const allDivs = document.querySelectorAll(`[data-config='ipt'][data-row='${thisRow}']`)
+
+				if (Array.from(allDivs).some((div) => {
+					if (div.textContent === "") {
+						return false;
+					}
+				})) {
+					//call api
+					
+				}
+			}
+		}
+
+		document.body.addEventListener("keydown", (e) => handleSubmit(e))
+
+		return document.body.removeEventListener("keydown", handleSubmit);
+	})
+
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		switch (e.key) {
 			case "ArrowRight": {
@@ -52,6 +74,7 @@ export default function Home() {
 
 					if (e.currentTarget.dataset.lid === "4") {
 						e.currentTarget.blur();
+						document.body.focus();
 					}
 				}
 				break;
@@ -84,9 +107,8 @@ export default function Home() {
 								thisRow === row ? (
 									<div
 										key={`${row}-${lid}`}
-										className={`rounded-[10%] border-[0.175em] focus:outline-none border-neutral-950 w-20 h-20 text-center bg-white caret-transparent flex justify-center items-center text-4xl font-extrabold cursor-pointer ${
-											lid === 0 && row === 0 ? " edit" : ""
-										}`}
+										className={`rounded-[10%] border-[0.175em] focus:outline-none border-neutral-950 w-20 h-20 text-center bg-white caret-transparent flex justify-center items-center text-4xl font-extrabold cursor-pointer ${lid === 0 && row === 0 ? " edit" : ""
+											}`}
 										autoFocus={lid === 0 && row === 0}
 										data-config="ipt"
 										onKeyDown={handleKeyDown}
