@@ -5,4 +5,10 @@ const nextConfig = {
 	},
 };
 
+module.exports = {
+	env: {
+		apiDefault: "localhost:8081/api",
+	},
+};
+
 module.exports = nextConfig;

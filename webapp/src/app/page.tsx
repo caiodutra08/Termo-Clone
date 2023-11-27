@@ -1,35 +1,69 @@
 "use client";
 
+import axios from "axios";
 import React, { KeyboardEvent } from "react";
+
+enum LetterStatus {
+	CORRECT = "bg-green-500",
+	INCORRECT = "bg-yellow-500",
+	MISSING = "bg-gray-700",
+}
 
 export default function Home() {
 	const [thisRow, setThisRow] = React.useState<number>(0);
-	const [word, setWord] = React.useState<string>("");
 	const divRef = React.useRef<HTMLDivElement>();
 	const [showNotify, setShowNotify] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
-		setWord("Salve");
-		setThisRow(0);
-	}, []);
-
-	React.useEffect(() => {
-		function handleSubmit(e: any) {
+		async function handleSubmit(e: any) {
 			if (e.key === "Enter") {
 				setShowNotify(false);
 				const allDivs = document.querySelectorAll(
 					`div[data-row='${thisRow}'] div[data-config='ipt']`
 				);
 
-				if (
-					Array.from(allDivs).some((div) => {
-						if (div.textContent === "") {
-							return false;
+				const allDivsFilled = Array.from(allDivs).every((div) => div.textContent !== "");
+
+				if (allDivsFilled) {
+					const word = Array.from(allDivs)
+						.map((div) => div.textContent)
+						.join("");
+
+					if (word.length === 5) {
+						const response = await axios.get(
+							`http://localhost:8081/api/palavra/verificar?palavraDigitada=${word}`
+						);
+
+						const data: Record<string, LetterStatus> = response.data;
+
+						if (data) {
+							setThisRow(thisRow + 1);
+
+							const allDivs = document.querySelectorAll(
+								`div[data-row='${thisRow}'] div[data-config='ipt']`
+							);
+
+							for (const div of allDivs) {
+								const htmlDiv = div as HTMLDivElement;
+								const letter = htmlDiv.textContent!;
+								switch (data[letter]) {
+									case LetterStatus.CORRECT:
+										htmlDiv.classList.add(LetterStatus.CORRECT);
+										break;
+									case LetterStatus.INCORRECT:
+										htmlDiv.classList.add(LetterStatus.INCORRECT);
+										break;
+									default:
+										htmlDiv.classList.add(LetterStatus.MISSING);
+										break;
+								}
+							}
 						}
-					})
-				) {
-					//call api
+					} else {
+						setTimeout(() => setShowNotify(true), 1);
+					}
 				} else {
+					console.log();
 					setTimeout(() => setShowNotify(true), 1);
 				}
 			}
@@ -133,7 +167,7 @@ export default function Home() {
 										}`}
 										autoFocus={lid === 0 && row === 0}
 										data-config="ipt"
-										onKeyDown={handleKeyDown}
+										onKeyDown={thisRow === row ? handleKeyDown : () => {}}
 										onClick={handleClick}
 										onBlur={(e) => {
 											lid !== 4
@@ -146,14 +180,12 @@ export default function Home() {
 								) : (
 									<div
 										key={`${row}-${lid}`}
-										className={`rounded-md border-[0.125em] border-none w-20 h-20 text-center bg-gray-600
-										 caret-transparent flex justify-center items-center text-4xl font-extrabold pointer-events-none`}
+										className={`rounded-md border-[0.125em] border-none w-20 h-20 text-center bg-gray-600 caret-transparent flex justify-center items-center text-4xl font-extrabold pointer-events-none`}
 									/>
 								)
 							)}
 						</div>
 					))}
-					<div className="flex"></div>
 				</div>
 			</main>
 		</>
