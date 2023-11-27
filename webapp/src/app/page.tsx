@@ -29,7 +29,7 @@ export default function Home() {
 						.map((div) => div.textContent)
 						.join("");
 
-					if (word.length === 5) {
+					if (word.length === 5 && word.match(/^[a-z]+$/i)) {
 						const response = await axios.get(
 							`http://localhost:8081/api/palavra/verificar?palavraDigitada=${word}`
 						);
