@@ -13,11 +13,13 @@ export default function Home() {
 	const [thisRow, setThisRow] = React.useState<number>(0);
 	const divRef = React.useRef<HTMLDivElement>();
 	const [showNotify, setShowNotify] = React.useState<boolean>(false);
+	const [data, setData] = React.useState<Record<string, LetterStatus>>({});
 
 	React.useEffect(() => {
-		async function handleSubmit(e: any) {
+		const handleSubmit = async (e: any) => {
 			if (e.key === "Enter") {
 				setShowNotify(false);
+
 				const allDivs = document.querySelectorAll(
 					`div[data-row='${thisRow}'] div[data-config='ipt']`
 				);
@@ -37,27 +39,8 @@ export default function Home() {
 						const data: Record<string, LetterStatus> = response.data;
 
 						if (data) {
-							setThisRow(thisRow + 1);
-
-							const allDivs = document.querySelectorAll(
-								`div[data-row='${thisRow}'] div[data-config='ipt']`
-							);
-
-							for (const div of allDivs) {
-								const htmlDiv = div as HTMLDivElement;
-								const letter = htmlDiv.textContent!;
-								switch (data[letter]) {
-									case LetterStatus.CORRECT:
-										htmlDiv.classList.add(LetterStatus.CORRECT);
-										break;
-									case LetterStatus.INCORRECT:
-										htmlDiv.classList.add(LetterStatus.INCORRECT);
-										break;
-									default:
-										htmlDiv.classList.add(LetterStatus.MISSING);
-										break;
-								}
-							}
+							setThisRow((prev) => prev + 1);
+							setData(data);
 						}
 					} else {
 						setTimeout(() => setShowNotify(true), 1);
@@ -67,14 +50,40 @@ export default function Home() {
 					setTimeout(() => setShowNotify(true), 1);
 				}
 			}
-		}
+		};
 
-		document.body.addEventListener("keydown", (e) => handleSubmit(e));
+		document.addEventListener("keydown", handleSubmit, true);
 
 		return () => {
-			document.body.removeEventListener("keydown", handleSubmit);
+			document.removeEventListener("keydown", handleSubmit, true);
 		};
-	}, []);
+	}, [thisRow, setShowNotify, setThisRow]);
+
+	React.useEffect(() => {
+		const updatedAllDivs = document.querySelectorAll(
+			`div[data-row='${thisRow - 1}'] div[data-config='opt']`
+		);
+
+		console.log(thisRow);
+
+		console.log(updatedAllDivs);
+
+		updatedAllDivs.forEach((div) => {
+			const htmlDiv = div as HTMLDivElement;
+			const letter = htmlDiv.textContent!;
+			switch (data[letter]) {
+				case LetterStatus.CORRECT:
+					htmlDiv.classList.add(LetterStatus.CORRECT);
+					break;
+				case LetterStatus.INCORRECT:
+					htmlDiv.classList.add(LetterStatus.INCORRECT);
+					break;
+				default:
+					htmlDiv.classList.add(LetterStatus.MISSING);
+					break;
+			}
+		});
+	}, [data, thisRow]);
 
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		switch (e.key) {
@@ -158,32 +167,29 @@ export default function Home() {
 							data-row={row}
 							className="flex flex-row justify-center gap-2"
 						>
-							{[0, 1, 2, 3, 4].map((lid) =>
-								thisRow === row ? (
-									<div
-										key={`${row}-${lid}`}
-										className={`rounded-[10%] border-[0.175em] focus:outline-none border-neutral-800 w-20 h-20 text-center bg-gray-500 caret-transparent flex justify-center items-center text-4xl font-extrabold cursor-pointer ${
-											lid === 0 && row === 0 ? " edit" : ""
-										}`}
-										autoFocus={lid === 0 && row === 0}
-										data-config="ipt"
-										onKeyDown={thisRow === row ? handleKeyDown : () => {}}
-										onClick={handleClick}
-										onBlur={(e) => {
-											lid !== 4
-												? divRef.current?.focus()
-												: e.currentTarget.classList.remove("edit");
-										}}
-										data-lid={lid}
-										tabIndex={-1}
-									/>
-								) : (
-									<div
-										key={`${row}-${lid}`}
-										className={`rounded-md border-[0.125em] border-none w-20 h-20 text-center bg-gray-600 caret-transparent flex justify-center items-center text-4xl font-extrabold pointer-events-none`}
-									/>
-								)
-							)}
+							{[0, 1, 2, 3, 4].map((lid) => (
+								<div
+									key={lid}
+									className={`${
+										thisRow === row
+											? `rounded-[10%] border-[0.175em] focus:outline-none border-neutral-800 w-20 h-20 text-center bg-gray-500 caret-transparent flex justify-center items-center text-4xl font-extrabold cursor-pointer ${
+													lid === 0 && row === 0 ? " edit" : ""
+											  }`
+											: `rounded-md border-[0.125em] border-none w-20 h-20 text-center bg-gray-600 caret-transparent flex justify-center items-center text-4xl font-extrabold pointer-events-none`
+									}`}
+									autoFocus={lid === 0 && row === 0}
+									data-config={thisRow === row ? "ipt" : "opt"}
+									onKeyDown={thisRow === row ? handleKeyDown : () => {}}
+									onClick={handleClick}
+									onBlur={(e) => {
+										lid !== 4
+											? divRef.current?.focus()
+											: e.currentTarget.classList.remove("edit");
+									}}
+									data-lid={lid}
+									tabIndex={-1}
+								/>
+							))}
 						</div>
 					))}
 				</div>
