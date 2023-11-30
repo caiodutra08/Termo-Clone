@@ -2,18 +2,34 @@
 
 import axios from "axios";
 import React, { KeyboardEvent } from "react";
+import {
+	AlertDialog,
+	AlertDialogBody,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogContent,
+	AlertDialogOverlay,
+	AlertDialogCloseButton,
+	useDisclosure,
+	Button,
+} from "@chakra-ui/react";
 
 enum LetterStatus {
-	CORRECT = "bg-green-500",
-	INCORRECT = "bg-yellow-500",
-	MISSING = "bg-gray-700",
+	CORRECT = "CORRECT",
+	INCORRECT = "INCORRECT",
+	MISSING = "MISSING",
 }
 
 export default function Home() {
 	const [thisRow, setThisRow] = React.useState<number>(0);
 	const divRef = React.useRef<HTMLDivElement>();
 	const [showNotify, setShowNotify] = React.useState<boolean>(false);
-	const [data, setData] = React.useState<Record<string, LetterStatus>>({});
+	const [data, setData] = React.useState<Record<string, LetterStatus> | null>(null);
+	const { isOpen, onOpen, onClose } = useDisclosure();
+	const cancelRef = React.useRef<HTMLButtonElement | null>(null);
+	const [word, setWord] = React.useState<string>("");
+	const [mode, setMode] = React.useState<"win" | "lose">();
+	const [guesses, setGuesses] = React.useState<number>(0);
 
 	React.useEffect(() => {
 		const handleSubmit = async (e: any) => {
@@ -60,29 +76,55 @@ export default function Home() {
 	}, [thisRow, setShowNotify, setThisRow]);
 
 	React.useEffect(() => {
-		const updatedAllDivs = document.querySelectorAll(
-			`div[data-row='${thisRow - 1}'] div[data-config='opt']`
-		);
+		if (data) {
+			const updatedAllDivs = document.querySelectorAll(
+				`div[data-row='${thisRow - 1}'] div[data-config='opt']`
+			);
 
-		console.log(thisRow);
+			(async () => {
+				updatedAllDivs.forEach((div, i) => {
+					const htmlDiv = div as HTMLDivElement;
+					switch (data[i]) {
+						case LetterStatus.CORRECT:
+							htmlDiv.classList.add("bg-green-500");
+							break;
+						case LetterStatus.INCORRECT:
+							htmlDiv.classList.add("bg-yellow-500");
+							break;
+						default:
+							htmlDiv.classList.add("bg-gray-700");
+							break;
+					}
+				});
+			})().then(() => {
+				const arrData = Object.values(data);
 
-		console.log(updatedAllDivs);
-
-		updatedAllDivs.forEach((div) => {
-			const htmlDiv = div as HTMLDivElement;
-			const letter = htmlDiv.textContent!;
-			switch (data[letter]) {
-				case LetterStatus.CORRECT:
-					htmlDiv.classList.add(LetterStatus.CORRECT);
-					break;
-				case LetterStatus.INCORRECT:
-					htmlDiv.classList.add(LetterStatus.INCORRECT);
-					break;
-				default:
-					htmlDiv.classList.add(LetterStatus.MISSING);
-					break;
-			}
-		});
+				if (arrData.every((letter) => letter === LetterStatus.CORRECT)) {
+					setMode("win");
+					setGuesses(thisRow);
+					setThisRow(6);
+					setData(null);
+					axios
+						.get("http://localhost:8081/api/palavra/atual")
+						.then((response) => {
+							setWord(response.data);
+							onOpen();
+						})
+						.catch((err) => console.log(err));
+				} else if (thisRow === 6) {
+					setMode("lose");
+					setThisRow(6);
+					setData(null);
+					axios
+						.get("http://localhost:8081/api/palavra/atual")
+						.then((response) => {
+							setWord(response.data);
+							onOpen();
+						})
+						.catch((err) => console.log(err));
+				}
+			});
+		}
 	}, [data, thisRow]);
 
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -135,6 +177,64 @@ export default function Home() {
 
 	const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
 		changeEditDiv(e.currentTarget);
+	};
+
+	const createDialog = (mode: string, word: string) => {
+		switch (mode) {
+			case "win":
+				return (
+					<AlertDialog
+						motionPreset="slideInBottom"
+						leastDestructiveRef={cancelRef}
+						onClose={onClose}
+						isOpen={isOpen}
+						isCentered
+					>
+						<AlertDialogOverlay />
+						<AlertDialogContent>
+							<AlertDialogHeader className="text-gray-950">
+								Você ganhou!
+							</AlertDialogHeader>
+							<AlertDialogCloseButton />
+							<AlertDialogBody className="text-gray-950">
+								Você acertou em {guesses}{" "}
+								{guesses === 1 ? "tentativa" : "tentativas"}. 🎉
+							</AlertDialogBody>
+							<AlertDialogFooter>
+								<Button ref={cancelRef} onClick={onClose}>
+									Legal!
+								</Button>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
+				);
+			case "lose":
+				return (
+					<AlertDialog
+						motionPreset="slideInBottom"
+						leastDestructiveRef={cancelRef}
+						onClose={onClose}
+						isOpen={isOpen}
+						isCentered
+					>
+						<AlertDialogOverlay />
+						<AlertDialogContent>
+							<AlertDialogHeader className="text-gray-950">
+								Você perdeu.
+							</AlertDialogHeader>
+							<AlertDialogCloseButton />
+							<AlertDialogBody className="text-gray-950">
+								A palavra era {word.toLocaleUpperCase()}. 💀
+							</AlertDialogBody>
+							<AlertDialogFooter>
+								<Button ref={cancelRef} onClick={onClose}>
+									Ok.
+								</Button>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
+				);
+		}
 	};
 
 	function changeEditDiv(thisDiv: HTMLDivElement) {
@@ -193,6 +293,7 @@ export default function Home() {
 						</div>
 					))}
 				</div>
+				{word && mode && createDialog(mode, word)}
 			</main>
 		</>
 	);
